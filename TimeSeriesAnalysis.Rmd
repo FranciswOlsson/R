@@ -1,0 +1,96 @@
+---
+title: "Time Series"
+author: "Francis"
+date: "June 1, 2018"
+output: html_document
+---
+
+Time Series Analysis
+
+Let's create some data
+Examples of different time series intervals:
+```{r}
+ts (inputData, frequency = 4, start = c(1959, 2)) # frequency 4 => Quarterly Data
+ts (1:10, frequency = 12, start = 1990) # freq 12 => Monthly data. 
+ts (inputData, start=c(2009), end=c(2014), frequency=1) # Yearly Data
+```
+
+Understanding your Time Series
+Each observation is expressed as either a sum or product of Seasonality(St), Trend(Tt), and Error(et).
+
+A multiplicative time series can be converted to additive by taking a log of the time series.
+```{r}
+additiveTS <- log (multiplcativeTS)  # often converts multiplicative to additive time series
+```
+
+Stationary Time Series
+A time series is said to be stationary if it holds the following conditions true.
+The mean value of time-series is constant over time, which implies, the trend component is nullified.
+The variance does not increase over time.
+Seasonality effect is minimal.
+This means it is devoid of trend or seasonal patterns, which makes it looks like a random white noise irrespective of the observed time interval.
+
+Extracting trend, seasonality, and error.
+decompose() and stl() split ts into seasonality, trend, and error components.
+```{r}
+tsData <- EuStockMarkets[, 1] # ts data
+decomposedRes <- decompose(tsData, type="mult") # use type = "additive" for additive components
+plot (decomposedRes) # see plot below
+stlRes <- stl(tsData, s.window = "periodic")
+```
+
+Creating lags of a time-series.
+```{r}
+laggedTS <- lag(tsData, 3) # shifted 3 periods earlier. Use `-3` to shift by 3 periods forward.
+library(DataCombine)
+myDf <- as.data.frame(tsData)
+myDf <- slide(myDf, "x", NewVar = "xLag1", slideBy = -1)  # create lag1 variable
+myDf <- slide(myDf, "x", NewVar = "xLead1", slideBy = 1)  # create lead1 variable
+head(myDf)
+```
+
+Autocorrelation and Partial-Autocorrelation
+correlation of a Time Series with lags of itself.  Shows if lagged observations have an influence on current state.  Also determines if time series is stationary.  Stationary time series will have autocorreation fall to zero quickly but non-stationary series drops gradually.
+Partial Autocorrelation is the correlation of a lag of itself with the linear dependence of all the lags between them removed.
+```{r}
+#both acf() and pacf() generates plots by default
+acfRes <- acf(AirPassengers) # autocorrelation
+pacfRes <- pacf(AirPassengers)  # partial autocorrelation
+ccfRes <- ccf(mdeaths, fdeaths, ylab = "cross-correlation") # computes cross correlation between 2 timeseries.
+head(ccfRes[[1]])
+#> [1] 0.01505498 0.36562603 0.61542712 0.70820629 0.62189580 0.34000545
+```
+De-trending a time series
+```{r}
+trModel <- lm(JohnsonJohnson ~ c(1:length(JohnsonJohnson)))
+plot(resid(trModel), type="l")  # resid(trModel) contains the de-trended series.
+```
+De-seasonilizing a time series
+```{r}
+library(forecast)
+ts.stl <- stl(TS,"periodic")  # decompose the TS
+ts.sa <- seasadj(ts.stl)  # de-seasonalize
+plot(AirPassengers, type="l")  # original series
+plot(ts.sa, type="l")  # seasonal adjusted
+seasonplot(ts.sa, 12, col=rainbow(12), year.labels=TRUE, main="Seasonal plot: Airpassengers") # seasonal frequency set as 12 for monthly data.
+```
+Testing if time series is stationary
+```{r}
+library(tseries)
+adf.test(tsData) # p-value < 0.05 indicates the TS is stationary
+kpss.test(tsData)
+```
+Making a time series stationary
+```{r}
+# Seasonal Differencing
+nsdiffs(AirPassengers)  # number for seasonal differencing needed
+#> 1
+AirPassengers_seasdiff <- diff(AirPassengers, lag=frequency(AirPassengers), differences=1)  # seasonal differencing
+plot(ap_seasdiff, type="l", main="Seasonally Differenced")  # still not stationary!
+
+# Make it stationary
+ndiffs(AirPassengers_seasdiff)  # number of differences need to make it stationary
+#> 1 
+stationaryTS <- diff(AirPassengers_seasdiff, differences= 1)
+plot(stationaryTS, type="l", main="Differenced and Stationary")  # appears to be stationary
+```

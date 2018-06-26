@@ -1,0 +1,56 @@
+---
+title: "TimeSeriesForecasting"
+author: "Francis"
+date: "June 1, 2018"
+output: html_document
+---
+
+Time Series Forecasting
+
+Let's create some data
+```{r}
+
+```
+
+Simple Moving Average
+```{r}
+library(forecast)
+sm <- ma(ts, order=12) # 12 month moving average
+lines(sm, col="red") # plot
+```
+
+Exponential smoothing
+```{r}
+library(forecast)
+
+# Simple exponential smoothing: Level Only
+model <- hw(trainingData, initial = "optimal", h=(forecastPeriodLen), beta=NULL, gamma=NULL) # h is the no. periods to forecast
+
+# Double Exponential smoothing: Level and Trend components
+model <- hw(trainingData, initial = "optimal", h=(forecastPeriodLen), gamma=NULL)
+
+# Holt Winters: Level, Trend and Seasonality
+model <- hw(trainingData, initial = "optimal", h=(forecastPeriodLen))
+plot(model)
+accuracy(model) # calculate accuracy measures
+```
+
+ARIMA
+```{r}
+# Fit and forecast with auto.arima()
+autoArimaFit <- auto.arima(tsData)
+plot(forecast(autoArimaFit, h=20))
+
+# Fit and forecast with Arima()
+arimaFit <- Arima(tsData,order=c(3,1,0))
+plot(forecast(arimafit,h=20))
+```
+
+Forecasting ARIMA models with long seasonality (gt 350 periods)
+```{r}
+Fit <- Arima(tsData,order=c(3,1,0))  # fit Arima model
+Fit <- auto.arima(tsData, seasonal=FALSE, xreg=fourier(tsData,4))  # fit auto.arima model
+plot(forecast(Fit,h=20))
+pred <- predict (Fit, newxreg=newXregVar) # alternate way to forecast
+plot(forecast(fit, h=h, xreg=fourierf(tsData,4,h))) # h is number of forecasts
+```
