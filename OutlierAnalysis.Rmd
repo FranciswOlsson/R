@@ -1,0 +1,114 @@
+---
+title: "OutlierAnalysis"
+author: "Francis"
+date: "May 30, 2018"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+Outlier Treatment
+To investigate the importance of removing outliers we will add outliers to the cars dataset.
+Adding outliers
+```{r}
+cars1 <- cars[1:30, ]  # original data
+cars_outliers <- data.frame(speed=c(19,19,20,20,20), dist=c(190, 186, 210, 220, 218))  # introduce outliers.
+cars2 <- rbind(cars1, cars_outliers)  # data with outliers.
+```
+Plot data with outliers.  (use ggplot)
+```{r}
+par(mfrow=c(1, 2)) #parse into 2 columns
+plot(cars2$speed, cars2$dist, xlim=c(0, 28), ylim=c(0, 230), main="With Outliers", xlab="speed", ylab="dist", pch="*", col="red", cex=2)
+abline(lm(dist ~ speed, data=cars2), col="blue", lwd=3, lty=2)
+```
+Plot without outliers
+```{r}
+plot(cars1$speed, cars1$dist, xlim=c(0, 28), ylim=c(0, 230), main="Outliers removed \n A much better fit!", xlab="speed", ylab="dist", pch="*", col="red", cex=2)
+abline(lm(dist ~ speed, data=cars1), col="blue", lwd=3, lty=2)
+```
+Detecting outliers
+1. Univariate approach
+For a continuous variable, an outlier is considered to be an observation that lies outside 1.5*IQR or, the inter quartile range.
+```{r}
+url <- "http://rstatistics.net/wp-content/uploads/2015/09/ozone.csv"
+inputData <- read.csv(url)  # import data
+outlier_values <- boxplot.stats(inputData$pressure_height)$out  # outlier values.
+boxplot(inputData$pressure_height, main="Pressure Height", boxwex=0.1)
+mtext(paste("Outliers: ", paste(outlier_values, collapse=", ")), cex=0.6)
+```
+2. Bivariate approach
+visualize using box-plots of x and y for categorical X's
+```{r}
+url <- "http://rstatistics.net/wp-content/uploads/2015/09/ozone.csv"
+ozone <- read.csv(url)
+# For categorical variable
+boxplot(ozone_reading ~ Month, data=ozone, main="Ozone reading across months")  # clear pattern is noticeable.
+boxplot(ozone_reading ~ Day_of_week, data=ozone, main="Ozone reading for days of week")
+
+# For continuous variable (convert to categorical if needed.)
+boxplot(ozone_reading ~ pressure_height, data=ozone, main="Boxplot for Pressure height (continuos var) vs Ozone")
+boxplot(ozone_reading ~ cut(pressure_height, pretty(inputData$pressure_height)), data=ozone, main="Boxplot for Pressure height (categorial) vs Ozone", cex.axis=0.5)
+```
+3. Multivariate approach
+Cook's distance:  measures how much each observation impacts the fitted values
+```{r}
+mod <- lm(ozone_reading ~ .,data = ozone)
+cooksd <- cooks.distance(mod)
+```
+Observations with a cook's distance greater than 4 times the mean are influential.
+```{r}
+plot(cooksd, pch="*", cex=2, main="Influential Obs by Cooks distance")  # plot cook's distance
+abline(h = 4*mean(cooksd, na.rm=T), col="red")  # add cutoff line
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4*mean(cooksd, na.rm=T),names(cooksd),""), col="red")  # add labels
+```
+identify infuential obs
+```{r}
+influential <- as.numeric(names(cooksd)[(cooksd > 4*mean(cooksd, na.rm=T))])  # influential row numbers
+head(ozone[influential, ])  # influential observations.
+```
+
+Outliers test
+```{r}
+library("car")
+library("outliers")
+car::outlierTest(mod)
+```
+Outliers Package
+outliers(): gets the most extreme observation from the mean.
+```{r}
+set.seed(1234)
+y=rnorm(100)
+outlier(y)
+#> [1] 2.548991
+outlier(y,opposite=TRUE)
+#> [1] -2.345698
+dim(y) <- c(20,5)  # convert it to a matrix
+outlier(y)
+outlier(y,opposite=T)
+```
+scores(): computes the normalized scores and finds observations that lie outside a given percentile
+```{r}
+set.seed(1000)
+x = rnorm(10)
+scores(x)
+scores(x, type = "chisq")
+scores(x, type = "t")
+scores(x, type = "chisq", prob = 0.9)
+scores(x, type="chisq", prob=0.95)  # beyond 95th %ile
+scores(x, type="z", prob=0.95)  # beyond 95th %ile based on z-scores
+scores(x, type="t", prob=0.95)  # beyond 95th %ile based on t-scores
+```
+Treating the outliers 
+1. Imputation
+same as above
+2. Capping replacing values that lie outside 1.5*IQR with the value of the 5th percentile if the outlier is bellow the lower limit and the value of the 95th percentile if the outlier lies above the upper limit.
+```{r}
+x <- ozone$pressure_height
+qnt <- quantile(x, probs=c(.25, .75), na.rm = T)
+caps <- quantile(x, probs=c(.05, .95), na.rm = T)
+H <- 1.5 * IQR(x, na.rm = T)
+x[x < (qnt[1] - H)] <- caps[1]
+x[x > (qnt[2] + H)] <- caps[2]
+```
+3. Prediction
+See above
