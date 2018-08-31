@@ -1,0 +1,57 @@
+---
+title: "FBI"
+author: "Francis"
+date: "August 26, 2018"
+output: html_document
+---
+
+Let's load some data 
+The data we received was in an uneditable excel file.  To workaround we created a .txt file and deleted the column headers.
+```{r}
+fbi<-read.table("C:/Users/Owner/Desktop/fbi.txt", header = F)
+head(fbi)
+```
+Now we will put back the data element headers
+
+```{r}
+
+```
+
+Let's subset some data
+Year~population
+```{r}
+pop<-fbi[c(1,2)]
+names(pop)<-c("year","population")
+head(pop)
+r<-fbi[c(1,3)]
+names(r)<-c("year","rate")
+head(r)
+
+```
+
+Let's explore ggplot2
+```{r}
+library(ggplot2)
+ggplot()+geom_point(data=pop, aes(year,population))+geom_point(data = r,aes(year,rate))
+
+
+```
+
+Jerry: make more interesting graphs with other variables.
+
+
+Let's start some interpolation and extrapolation
+
+Interpolation: approximating values in between different data points (estimation)
+Here we are attempting to approximate population by month.  n= 12 Months * 20 Years
+```{r}
+approx(pop$year, pop$population, method = "linear", n=228)
+popMonth<-approx(pop$year, pop$population, method = "linear", n=240)
+```
+Next we will refactor the decimal dates into months 
+
+
+Extrapolation: approximating values outside of different data points (prediction)
+```{r}
+
+```
