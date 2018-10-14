@@ -1,0 +1,155 @@
+---
+title: "ggplotTest"
+author: "Francis"
+date: "May 29, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+1. Initializing and developing ggplot() function
+```{r}
+library(ggplot2)
+library(datasets)
+data("ToothGrowth")
+ggplot(ToothGrowth)  #initialize ggplot
+ggplot(ToothGrowth, aes(x=dose))  #decare x-axis
+ggplot(ToothGrowth, aes(x=dose, y=len, color=factor(supp))) #add y axis
+# Each state will now have a distinct  color, once a geom is added.
+```
+
+2. Adding layers a.k.a geoms. There are two ways of accomplishing this:
+2.1 With aesthetics inside setup.
+```{r}
+ggplot(ToothGrowth, aes(x=dose, y=len, color=factor(supp))) + geom_point() + geom_smooth() # Adding scatterplot geom (layer1) and smoothing geom (layer2).
+```
+2.2 With aesthetics inside geoms.
+```{r}
+ggplot(ToothGrowth) + geom_point(aes(x=dose, y=len, color=factor(supp))) + geom_smooth(aes(x=dose, y=len, color=factor(supp))) # Same as above but specifying the aesthetics inside the geoms.  Can be a little redundant.
+```
+Here we see that Orange Juice is the preferred delivery system to Vitamin C(as Absorbic Acid) at a low dose while there is litte difference when the dose reaches 2 mg.
+2.3 Integrating all smoothing lines into one.
+```{r}
+ggplot(ToothGrowth) + geom_point(aes(x=dose, y=len, color=factor(supp))) + geom_smooth(aes(x=dose, y=len)) # Remove color from geom_smooth
+ggplot(ToothGrowth, aes(x=dose, y=len)) + geom_point(aes(color=factor(supp))) + geom_smooth()  # same but simpler
+```
+3. The labels
+```{r}
+gg <- ggplot(ToothGrowth, aes(x=dose, y=len,)) + geom_point(aes(color=factor(supp))) + geom_smooth()+ labs(title="Effects of Vitamin C on tooth length", x="Dose in mg", y="Tooth Length")  # add axis lables and plot title.
+print(gg) #print the plot
+```
+This graph concludes that supplementation with vitamin c does have a positive effect on tooth length in guini pigs.
+
+4. The Theme.  This is where we can make changes to the overall appearance of the plot
+```{r}
+gg1 <- gg + theme(plot.title=element_text(size=20, face="bold"), 
+                  axis.text.x=element_text(size=5), 
+                  axis.text.y=element_text(size=5),
+                  axis.title.x=element_text(size=15),
+                  axis.title.y=element_text(size=15)) 
+
+  + scale_color_discrete(name= "Type of Supplement", labels = c("Orange Juice", "Vitamin C")) 
+
+print(gg1)  # print the plot
+```
+
+If the legend shows a shape attribute based on a factor variable, you need to change it using scale_shape_discrete(name="legend title"). Had it been a continuous variable, use scale_shape_continuous(name="legend title") instead.
+
+5. The Facets
+Split the graphs by cut
+```{r}
+gg1 + facet_wrap( ~ cut, ncol=2)  # columns defined by 'supp'
+
+gg1 + facet_wrap(color ~ cut)  # row: color, column: cut
+
+gg1 + facet_wrap(color ~ cut, scales="free")  # row: color, column: cut
+
+gg1 + facet_grid(color ~ cut)   # In a grid
+```
+
+6. Commonly used Features
+6.1 plotting a time series using ggfortify
+```{r}
+data("airpassengers")
+library(ggfortify)
+autoplot(AirPassengers) + labs(title="AirPassengers")  # where AirPassengers is a 'ts' object
+```
+6.2 Plot multiple time series on same ggplot.  Must convert ts -> data.frame
+6.2.1 After converting, you just need to keep adding multiple layers of time series one on top of the other.
+```{r}
+# Approach 1:
+data(economics, package="ggplot2")  # init data
+economics <- data.frame(economics)  # convert to dataframe
+ggplot(economics) + geom_line(aes(x=date, y=pce, color="pcs")) + geom_line(aes(x=date, y=unemploy, col="unemploy")) + scale_color_discrete(name="Legend") + labs(title="Economics") # plot multiple time series using 'geom_line's
+```
+6.2.2 Melt the dataframe using reshape2::melt by setting the id to the date field. Then just add one geom_line and set the color aesthetic to variable (which was created during the melt).
+```{r}
+# Approach 2:
+library(reshape2)
+df <- melt(economics[, c("date", "pce", "unemploy")], id="date")
+ggplot(df) + geom_line(aes(x=date, y=value, color=variable)) + labs(title="Economics")# plot multiple time series by melting
+```
+6.2.3 facet wrap
+```{r}
+df <- melt(economics[, c("date", "pce", "unemploy", "psavert")], id="date")
+ggplot(df) + geom_line(aes(x=date, y=value, color=variable))  + facet_wrap( ~ variable, scales="free")
+#facet_wrap sett scales='free'
+```
+
+6.3 Bar charts
+```{r}
+plot1 <- ggplot(mtcars, aes(x=cyl)) + geom_bar() + labs(title="Frequency bar chart")  # Y axis derived from counts of X item
+print(plot1)
+```
+
+6.3.1 Static bar chart
+```{r}
+df <- data.frame(var=c("a", "b", "c"), nums=c(1:3))
+plot2 <- ggplot(df, aes(x=var, y=nums)) + geom_bar(stat = "identity")  # Y axis is explicit. 'stat=identity'
+print(plot2)
+```
+
+6.4 Custom layout
+6.4.1 Grid extra allows for multiple graphs
+```{r}
+library(gridExtra)
+grid.arrange(plot1, plot2, ncol=2)
+```
+6.4.2 Flipping coordinates
+```{r}
+df <- data.frame(var=c("a", "b", "c"), nums=c(1:3))
+ggplot(df, aes(x=var, y=nums)) + geom_bar(stat = "identity") + coord_flip() + labs(title="Coordinates are flipped")
+```
+6.4.3 Adjusting axis limits
+There are 3 ways to change the X and Y axis limits.
+
+Using coord_cartesian(xlim=c(x1,x2))
+Using xlim(c(x1,x2))
+Using scale_x_continuous(limits=c(x1,x2)
+```{r}
+ggplot(mtcars, aes(x=carat, y=price, color=cut)) + geom_point() + geom_smooth() + coord_cartesian(ylim=c(0, 10000)) + labs(title="Coord_cartesian zoomed in!")
+```
+
+```{r}
+ggplot(mtcars, aes(x=carat, y=price, color=cut)) + geom_point() + geom_smooth() + ylim(c(0, 10000)) + labs(title="Datapoints deleted: Note the change in smoothing lines!")
+#> Warning messages:
+#> 1: Removed 5222 rows containing non-finite values
+#> (stat_smooth). 
+#> 2: Removed 5222 rows containing missing values
+#> (geom_point).
+```
+
+equal coordinates
+```{r}
+ggplot(mtcars, aes(x=price, y=price+runif(nrow(mtcars), 100, 10000), color=cut)) + geom_point() + geom_smooth() + coord_equal()
+```
+
+change themes
+```{r}
+ggplot(mtcars, aes(x=carat, y=price, color=cut)) + geom_point() + geom_smooth() +theme_bw() + labs(title="bw Theme")
+```
+
+
+
+
+
+
