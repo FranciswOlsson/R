@@ -1,0 +1,40 @@
+---
+title: "Clustering"
+author: "Francis"
+date: "October 18, 2018"
+output: html_document
+---
+
+In this section we will use the Iris data set to experiment with different clustering techniques.
+
+Let's load some data
+```{r}
+library(datasets)
+head(iris)
+data<-iris
+```
+
+Exploratory data analysis
+```{r}
+library(ggplot2)
+ggplot(iris, aes(Petal.Length, Petal.Width, color = Species)) + geom_point()
+```
+
+Our first clustering technique will be k-means clustering.  K-means clustering is an unsupervised learning method that associates data based on similarity.  Here we develop our clusters.
+```{r}
+set.seed(20)
+Iriscluster <- kmeans(iris[, 3:4], 3, nstart = 20)
+Iriscluster
+```
+
+Let's examine the effectiveness of our clusters.
+```{r}
+table(Iriscluster$cluster, data$Species)
+```
+
+We can also view a graphical representation of our clusters.
+```{r}
+Iriscluster$cluster <- as.factor(irisCluster$cluster)
+ggplot(iris, aes(Petal.Length, Petal.Width, color = Iriscluster$cluster)) + geom_point()+geom_polygon()
+```
+
